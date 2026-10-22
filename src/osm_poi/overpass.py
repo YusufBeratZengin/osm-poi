@@ -27,6 +27,11 @@ class OverpassClient:
         try:
             document = json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            text = raw.decode("utf-8", errors="replace")
+            if "runtime error" in text.lower() or "query timed out" in text.lower():
+                raise OverpassError(
+                    f"Overpass reported a problem: {text[:200].strip()}"
+                ) from exc
             raise HttpError("Overpass returned a response that is not valid JSON.") from exc
         if not isinstance(document, dict):
             raise OverpassError("Unexpected Overpass response shape.")

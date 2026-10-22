@@ -202,3 +202,61 @@ def test_nominatim_no_result(fake_server: FakeServer, tmp_path: Path) -> None:
 def test_nominatim_empty_name(fake_server: FakeServer, tmp_path: Path) -> None:
     with pytest.raises(AreaError):
         nominatim(fake_server, tmp_path).resolve("  ")
+
+
+def test_overpass_empty_elements(fake_server: FakeServer, tmp_path: Path) -> None:
+    fake_server.set_default("/interpreter", 200, {"elements": []})
+    overpass = OverpassClient(
+        fake_server.base_url + "/interpreter", client(fake_server), DiskCache(tmp_path, 3600)
+    )
+    assert overpass.run("q") == []
+
+
+def test_overpass_gzip_response(fake_server: FakeServer, tmp_path: Path) -> None:
+    import gzip
+
+    compressed = gzip.compress(b'{"elements": [{"type": "node", "id": 1, "lat": 1, "lon": 2}]}')
+    fake_server.script("/interpreter", (200, {"Content-Encoding": "gzip"}, compressed))
+    overpass = OverpassClient(
+        fake_server.base_url + "/interpreter", client(fake_server), DiskCache(tmp_path, 3600)
+    )
+    elements = overpass.run("q")
+    assert len(elements) == 1
+    assert elements[0]["id"] == 1
+
+
+def test_overpass_redirect_followed(fake_server: FakeServer, tmp_path: Path) -> None:
+    fake_server.script(
+        "/old_interpreter",
+        (307, {"Location": fake_server.base_url + "/new_interpreter"}, b""),
+    )
+    fake_server.script(
+        "/new_interpreter",
+        (200, {}, b'{"elements": [{"type": "node", "id": 42, "lat": 1, "lon": 2}]}'),
+    )
+    overpass = OverpassClient(
+        fake_server.base_url + "/old_interpreter", client(fake_server), DiskCache(tmp_path, 3600)
+    )
+    elements = overpass.run("q")
+    assert len(elements) == 1
+    assert elements[0]["id"] == 42
+
+
+def test_overpass_non_json_runtime_error(fake_server: FakeServer, tmp_path: Path) -> None:
+    fake_server.set_default("/interpreter", 200, b"runtime error: Query timed out in processing.")
+    overpass = OverpassClient(
+        fake_server.base_url + "/interpreter", client(fake_server), DiskCache(tmp_path, 3600)
+    )
+    with pytest.raises(OverpassError, match="Query timed out"):
+        overpass.run("q")
+
+
+def test_http_redirect_loop_detected(fake_server: FakeServer) -> None:
+    fake_server.set_default(
+        "/loop", 302, b"", headers={"Location": fake_server.base_url + "/loop"}
+    )
+    http = client(fake_server)
+    with pytest.raises(HttpError, match="Too many redirects"):
+        http.get(fake_server.base_url + "/loop")
+
+

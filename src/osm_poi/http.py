@@ -13,6 +13,20 @@ from osm_poi.errors import HttpError
 
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 MAX_RETRY_AFTER = 120.0
+MAX_REDIRECTS = 5
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: object,
+        code: int,
+        msg: str,
+        headers: Message,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        return None
 
 
 def _check_url(url: str) -> None:
@@ -55,6 +69,7 @@ class HttpClient:
         self._sleep = sleep
         self._clock = clock
         self._last_request: float | None = None
+        self._opener = urllib.request.build_opener(_NoRedirectHandler())
 
     def _wait_turn(self) -> None:
         if self._last_request is not None and self.min_interval > 0:
@@ -73,34 +88,85 @@ class HttpClient:
 
     def _request(self, url: str, body: bytes | None) -> bytes:
         _check_url(url)
-        last_error = "unknown error"
-        last_status: int | None = None
-        for attempt in range(self.retries + 1):
-            self._wait_turn()
-            request = urllib.request.Request(
-                url,
-                data=body,
-                headers={"User-Agent": self.user_agent, "Accept": "application/json"},
+        current_url = url
+        current_body = body
+        redirect_count = 0
+
+        while True:
+            last_error = "unknown error"
+            last_status: int | None = None
+            redirect_to: str | None = None
+
+            for attempt in range(self.retries + 1):
+                self._wait_turn()
+                headers = {
+                    "User-Agent": self.user_agent,
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip, deflate",
+                }
+                request = urllib.request.Request(
+                    current_url,
+                    data=current_body,
+                    headers=headers,
+                )
+                delay = self.backoff * (2**attempt)
+                try:
+                    with self._opener.open(request, timeout=self.timeout) as response:
+                        payload: bytes = response.read()
+                        content_encoding = (response.headers.get("Content-Encoding") or "").lower()
+                        if "gzip" in content_encoding or payload.startswith(b"\x1f\x8b"):
+                            import gzip
+
+                            try:
+                                payload = gzip.decompress(payload)
+                            except Exception as exc:
+                                raise HttpError(
+                                    f"Failed to decompress gzip response: {exc}"
+                                ) from exc
+                        elif "deflate" in content_encoding:
+                            import zlib
+
+                            try:
+                                payload = zlib.decompress(payload)
+                            except Exception as exc:
+                                raise HttpError(
+                                    f"Failed to decompress deflate response: {exc}"
+                                ) from exc
+                        return payload
+                except urllib.error.HTTPError as exc:
+                    last_status = exc.code
+                    last_error = f"HTTP {exc.code} {exc.reason}"
+                    if exc.code in {301, 302, 303, 307, 308}:
+                        loc = exc.headers.get("Location")
+                        if not loc:
+                            raise HttpError(
+                                f"HTTP {exc.code} redirect missing Location header: {current_url}",
+                                exc.code,
+                            ) from exc
+                        redirect_to = urllib.parse.urljoin(current_url, loc)
+                        if exc.code == 303:
+                            current_body = None
+                        break
+                    if exc.code not in RETRY_STATUSES:
+                        raise HttpError(f"{last_error} for {current_url}", exc.code) from exc
+                    hinted = retry_after_seconds(exc.headers)
+                    if hinted is not None:
+                        delay = hinted
+                except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
+                    last_status = None
+                    last_error = f"{type(exc).__name__}: {exc}"
+                if attempt < self.retries:
+                    self._sleep(delay)
+
+            if redirect_to is not None:
+                redirect_count += 1
+                if redirect_count > MAX_REDIRECTS:
+                    raise HttpError(f"Too many redirects ({redirect_count}) for {url}")
+                current_url = redirect_to
+                _check_url(current_url)
+                continue
+
+            raise HttpError(
+                f"Request failed after {self.retries + 1} attempts ({last_error}): {current_url}",
+                last_status,
             )
-            delay = self.backoff * (2**attempt)
-            try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                    payload: bytes = response.read()
-                    return payload
-            except urllib.error.HTTPError as exc:
-                last_status = exc.code
-                last_error = f"HTTP {exc.code} {exc.reason}"
-                if exc.code not in RETRY_STATUSES:
-                    raise HttpError(f"{last_error} for {url}", exc.code) from exc
-                hinted = retry_after_seconds(exc.headers)
-                if hinted is not None:
-                    delay = hinted
-            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
-                last_status = None
-                last_error = f"{type(exc).__name__}: {exc}"
-            if attempt < self.retries:
-                self._sleep(delay)
-        raise HttpError(
-            f"Request failed after {self.retries + 1} attempts ({last_error}): {url}",
-            last_status,
-        )
