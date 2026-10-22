@@ -8,30 +8,44 @@ version = "0.1.0"
 description = "Export points of interest from OpenStreetMap (Overpass API) to CSV, GeoJSON or JSONL with category presets, polite rate limiting and caching."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Yusuf Berat Zengin" }]
-keywords = ["openstreetmap", "overpass", "poi", "nominatim", "csv", "geojson"]
+keywords = [
+    "poi",
+    "geocoding",
+    "leads",
+    "odbl",
+    "local-business",
+    "openstreetmap",
+    "overpass",
+    "nominatim",
+    "csv",
+    "geojson",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: GIS",
     "Typing :: Typed",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "ruff>=0.5", "mypy>=1.8"]
+dev = ["pytest>=7", "ruff>=0.5", "mypy>=1.8", "build>=1.0", "twine>=5.0"]
 
 [project.urls]
 Homepage = "https://github.com/YusufBeratZengin/osm-poi"
+Source = "https://github.com/YusufBeratZengin/osm-poi"
 Issues = "https://github.com/YusufBeratZengin/osm-poi/issues"
 Changelog = "https://github.com/YusufBeratZengin/osm-poi/blob/main/CHANGELOG.md"
 
