@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from osm_poi.areas import Area, BBox, OsmArea, Polygon, load_polygon_file, parse_bbox
 from osm_poi.cache import DiskCache
@@ -100,9 +101,7 @@ def fetch_pois(
         "cache_ttl_hours": cache_ttl_hours,
         "use_cache": use_cache,
     }
-    base_config = config or load_config()
     cfg = load_config(overrides={k: v for k, v in overrides.items() if v is not None})
-    # If base_config was passed explicitly, merge its values
     if config is not None:
         cfg = load_config(
             overrides={
@@ -139,22 +138,18 @@ def fetch_pois(
     if area:
         nominatim_client = NominatimClient(
             cfg.nominatim_url,
-            HttpClient(
-                agent, cfg.timeout, cfg.retries, cfg.backoff, cfg.nominatim_interval
-            ),
+            HttpClient(agent, cfg.timeout, cfg.retries, cfg.backoff, cfg.nominatim_interval),
             disk_cache,
         )
 
-    bboxes, polygons, osm_areas = _parse_area_inputs(
-        bbox, area, polygon, split, nominatim_client
-    )
+    bboxes, polygons, osm_areas = _parse_area_inputs(bbox, area, polygon, split, nominatim_client)
 
     if not allow_large:
         for b in bboxes:
             if b.area_sq_degrees() > cfg.max_area:
                 raise AreaError(
                     f"Bounding box area {b.area_sq_degrees():.4f} sq deg exceeds the limit "
-                    f"of {cfg.max_area:.4f} sq deg. Use allow_large=True or split into smaller tiles."
+                    f"of {cfg.max_area:.4f} sq deg. Use allow_large=True or split into tiles."
                 )
         for p in polygons:
             if p.area_sq_degrees() > cfg.max_area:
@@ -171,10 +166,15 @@ def fetch_pois(
     if split > 1 and bboxes:
         for b in bboxes:
             queries.append(build_query([b], selected_presets, timeout=query_timeout))
-        for other in (*polygons, *osm_areas):
-            queries.append(build_query([other], selected_presets, timeout=query_timeout))
+        for poly in polygons:
+            queries.append(build_query([poly], selected_presets, timeout=query_timeout))
+        for o_area in osm_areas:
+            queries.append(build_query([o_area], selected_presets, timeout=query_timeout))
     else:
-        all_areas: list[Area] = [*bboxes, *polygons, *osm_areas]
+        all_areas: list[Area] = []
+        all_areas.extend(bboxes)
+        all_areas.extend(polygons)
+        all_areas.extend(osm_areas)
         queries.append(build_query(all_areas, selected_presets, timeout=query_timeout))
 
     overpass_client = OverpassClient(
@@ -183,11 +183,9 @@ def fetch_pois(
         disk_cache,
     )
 
-    all_elements: list[dict] = []
+    all_elements: list[dict[str, Any]] = []
     for query in queries:
         all_elements.extend(overpass_client.run(query))
 
-    pois = normalize_elements(
-        all_elements, selected_presets, include_unnamed=include_unnamed
-    )
+    pois = normalize_elements(all_elements, selected_presets, include_unnamed=include_unnamed)
     return dedupe(pois, radius_m=dedupe_radius)

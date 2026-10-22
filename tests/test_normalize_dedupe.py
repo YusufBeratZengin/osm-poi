@@ -262,4 +262,3 @@ def test_website_without_scheme_adds_https() -> None:
     poi2 = normalize_element(el_with_http, PRESETS)
     assert poi2 is not None
     assert poi2.website == "http://example.org"
-

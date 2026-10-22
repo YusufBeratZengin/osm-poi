@@ -31,9 +31,7 @@ def resolve_fields(fields_arg: str | None, no_contact: bool) -> tuple[str, ...]:
         chosen = [f.strip() for f in fields_arg.split(",") if f.strip()]
         for f in chosen:
             if f not in FIELDS:
-                raise ConfigError(
-                    f"Unknown field {f!r}. Available fields: {', '.join(FIELDS)}"
-                )
+                raise ConfigError(f"Unknown field {f!r}. Available fields: {', '.join(FIELDS)}")
     else:
         chosen = list(FIELDS)
 
@@ -274,10 +272,15 @@ def _cmd_fetch(args: argparse.Namespace) -> int:
     if args.split > 1 and bboxes:
         for b in bboxes:
             queries.append(build_query([b], presets, timeout=args.query_timeout))
-        for other in (*polygons, *osm_areas):
-            queries.append(build_query([other], presets, timeout=args.query_timeout))
+        for poly in polygons:
+            queries.append(build_query([poly], presets, timeout=args.query_timeout))
+        for o_area in osm_areas:
+            queries.append(build_query([o_area], presets, timeout=args.query_timeout))
     else:
-        all_areas: list[Area] = [*bboxes, *polygons, *osm_areas]
+        all_areas: list[Area] = []
+        all_areas.extend(bboxes)
+        all_areas.extend(polygons)
+        all_areas.extend(osm_areas)
         queries.append(build_query(all_areas, presets, timeout=args.query_timeout))
 
     if args.dry_run:

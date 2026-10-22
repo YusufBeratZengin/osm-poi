@@ -56,7 +56,12 @@ def write_csv(
     for poi in pois:
         row = poi.as_dict()
         writer.writerow(
-            [safe_cell(row.get(col, "")) if isinstance(row.get(col, ""), str) else row.get(col, "") for col in cols]
+            [
+                safe_cell(row.get(col, ""))
+                if isinstance(row.get(col, ""), str)
+                else row.get(col, "")
+                for col in cols
+            ]
         )
 
 

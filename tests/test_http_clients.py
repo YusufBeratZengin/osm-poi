@@ -252,11 +252,7 @@ def test_overpass_non_json_runtime_error(fake_server: FakeServer, tmp_path: Path
 
 
 def test_http_redirect_loop_detected(fake_server: FakeServer) -> None:
-    fake_server.set_default(
-        "/loop", 302, b"", headers={"Location": fake_server.base_url + "/loop"}
-    )
+    fake_server.set_default("/loop", 302, b"", headers={"Location": fake_server.base_url + "/loop"})
     http = client(fake_server)
     with pytest.raises(HttpError, match="Too many redirects"):
         http.get(fake_server.base_url + "/loop")
-
-

@@ -50,7 +50,6 @@ def test_polygon_area_math() -> None:
     assert poly.area_sq_degrees() == pytest.approx(1.0)
 
 
-
 @pytest.mark.parametrize(
     "text", ["1,2,3", "a,b,c,d", "5,0,1,1", "0,5,1,1", "-95,0,1,1", "0,0,1,200"]
 )
@@ -191,4 +190,3 @@ def test_builtin_presets_schema_and_uniqueness() -> None:
                     assert all(isinstance(item, str) and item.strip() for item in v)
                 else:
                     assert isinstance(v, str) and v.strip()
-

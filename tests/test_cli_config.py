@@ -169,9 +169,7 @@ def test_config_rejects_unknown_key_and_bad_values(tmp_path: Path) -> None:
         load_config(tmp_path / "missing.json", {})
 
 
-def test_fetch_no_contact_flag_drops_columns(
-    fake_server: FakeServer, tmp_path: Path
-) -> None:
+def test_fetch_no_contact_flag_drops_columns(fake_server: FakeServer, tmp_path: Path) -> None:
     fake_server.set_default("/interpreter", 200, {"elements": CAFE_ELEMENTS})
     target = tmp_path / "out_nocontact.csv"
     args = [
@@ -192,9 +190,7 @@ def test_fetch_no_contact_flag_drops_columns(
     assert "name" in header and "lat" in header
 
 
-def test_fetch_fields_flag_selects_columns(
-    fake_server: FakeServer, tmp_path: Path
-) -> None:
+def test_fetch_fields_flag_selects_columns(fake_server: FakeServer, tmp_path: Path) -> None:
     fake_server.set_default("/interpreter", 200, {"elements": CAFE_ELEMENTS})
     target = tmp_path / "out_fields.csv"
     args = [
@@ -277,4 +273,3 @@ def test_split_bbox_tiles_in_dry_run(capsys: pytest.CaptureFixture[str]) -> None
     assert code == 0
     out = capsys.readouterr().out
     assert out.count("[out:json]") == 4
-

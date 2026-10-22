@@ -33,4 +33,4 @@ def test_fetch_pois_example_against_fake_server(fake_server: FakeServer) -> None
 
     # Verify formatting output matches example in documentation
     output_line = f"{poi.name} | {poi.category} | {poi.lat}, {poi.lon} | {poi.phone}"
-    assert "Kahve Evi | cafe | 40.99, 29.03 | +90 216 000 00 00" == output_line
+    assert output_line == "Kahve Evi | cafe | 40.99, 29.03 | +90 216 000 00 00"

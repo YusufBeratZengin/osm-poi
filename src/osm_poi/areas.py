@@ -105,7 +105,6 @@ class OsmArea:
         return 0.0
 
 
-
 Area = BBox | Polygon | OsmArea
 
 

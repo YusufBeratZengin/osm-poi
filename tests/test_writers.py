@@ -132,4 +132,3 @@ def test_render_with_custom_fields_jsonl() -> None:
     p = poi("Test Kafe", phone="+90 216 111", email="k@example.com")
     line = render([p], "jsonl", fields=["name", "category"]).strip()
     assert json.loads(line) == {"name": "Test Kafe", "category": "cafe"}
-

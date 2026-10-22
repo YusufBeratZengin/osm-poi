@@ -34,9 +34,9 @@ def test_readme_examples_match_golden_files() -> None:
 
         # Verify CSV block
         csv_blocks = _extract_fenced_blocks(content, "csv")
-        assert any(
-            sample_csv == block for block in csv_blocks
-        ), f"CSV sample in {filename} does not match examples/sample.csv"
+        assert any(sample_csv == block for block in csv_blocks), (
+            f"CSV sample in {filename} does not match examples/sample.csv"
+        )
 
         # Verify GeoJSON excerpt block
         json_blocks = _extract_fenced_blocks(content, "json")
