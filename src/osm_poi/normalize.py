@@ -19,6 +19,22 @@ def _first(tags: Mapping[str, str], *keys: str) -> str:
     return ""
 
 
+def _normalize_phone(raw: str) -> str:
+    if not raw:
+        return ""
+    parts = [p.strip() for p in raw.split(";") if p.strip()]
+    return "; ".join(parts)
+
+
+def _normalize_website(raw: str) -> str:
+    if not raw:
+        return ""
+    value = raw.strip()
+    if value and not (value.startswith("http://") or value.startswith("https://")):
+        return f"https://{value}"
+    return value
+
+
 def _coordinates(element: Mapping[str, Any]) -> tuple[float, float] | None:
     lat: Any = element.get("lat")
     lon: Any = element.get("lon")
@@ -49,13 +65,17 @@ def normalize_element(
     if coords is None:
         return None
 
-    name = _first(tags, "name", "name:en", "brand", "operator")
+    name = _first(tags, "name", "name:tr", "name:en", "brand", "operator")
     if not name and not include_unnamed:
         return None
 
     category = next((p.name for p in presets if p.matches(tags)), "")
     if not category:
         return None
+
+    raw_phone = _first(tags, "phone", "contact:phone")
+    raw_website = _first(tags, "website", "contact:website", "url")
+    street = _first(tags, "addr:street", "addr:full")
 
     return Poi(
         osm_type=str(osm_type),
@@ -65,13 +85,13 @@ def normalize_element(
         category=category,
         lat=round(coords[0], 7),
         lon=round(coords[1], 7),
-        street=_first(tags, "addr:street"),
+        street=street,
         housenumber=_first(tags, "addr:housenumber"),
         postcode=_first(tags, "addr:postcode"),
         city=_first(tags, "addr:city", "addr:town", "addr:village", "addr:province"),
         country=_first(tags, "addr:country"),
-        phone=_first(tags, "phone", "contact:phone"),
-        website=_first(tags, "website", "contact:website", "url"),
+        phone=_normalize_phone(raw_phone),
+        website=_normalize_website(raw_website),
         email=_first(tags, "email", "contact:email"),
         opening_hours=_first(tags, "opening_hours"),
     )

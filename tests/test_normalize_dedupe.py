@@ -121,3 +121,145 @@ def test_dedupe_different_category_is_kept() -> None:
 
 def test_dedupe_unnamed_never_merged() -> None:
     assert len(dedupe([make(1, ""), make(2, "")])) == 2
+
+
+def test_contact_fallbacks_and_multiple_phones() -> None:
+    element = {
+        "type": "node",
+        "id": 10,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {
+            "amenity": "cafe",
+            "name": "Çay Bahçesi",
+            "contact:phone": "+90 216 111 22 33;  +90 216 111 22 34 ; +90 216 111 22 35",
+            "contact:website": "www.caybahcesi.com.tr",
+            "contact:email": "info@caybahcesi.com.tr",
+        },
+    }
+    poi = normalize_element(element, PRESETS)
+    assert poi is not None
+    assert poi.phone == "+90 216 111 22 33; +90 216 111 22 34; +90 216 111 22 35"
+    assert poi.website == "https://www.caybahcesi.com.tr"
+    assert poi.email == "info@caybahcesi.com.tr"
+
+
+def test_addr_full_fallback() -> None:
+    element = {
+        "type": "node",
+        "id": 11,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {
+            "amenity": "cafe",
+            "name": "Köşe Kafe",
+            "addr:full": "Caferağa Mah. Moda Cad. No:15 Kadıköy/İstanbul",
+        },
+    }
+    poi = normalize_element(element, PRESETS)
+    assert poi is not None
+    assert poi.street == "Caferağa Mah. Moda Cad. No:15 Kadıköy/İstanbul"
+
+
+def test_turkish_dotted_dotless_i_handling() -> None:
+    element = {
+        "type": "node",
+        "id": 12,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {
+            "amenity": "cafe",
+            "name": "İnci Pastanesi",
+        },
+    }
+    poi = normalize_element(element, PRESETS)
+    assert poi is not None
+    assert poi.name == "İnci Pastanesi"
+
+    # Verify deduplication folds 'İnci Pastanesi' and 'inci pastanesi'
+    duplicate = make(13, name="inci pastanesi", lat=41.0001, lon=29.0001)
+    res = dedupe([poi, duplicate])
+    assert len(res) == 1
+
+
+def test_name_language_fallbacks_and_brand_operator() -> None:
+    # name:tr only
+    el_tr = {
+        "type": "node",
+        "id": 14,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {"amenity": "cafe", "name:tr": "Türk Kahvecisi"},
+    }
+    poi_tr = normalize_element(el_tr, PRESETS)
+    assert poi_tr is not None and poi_tr.name == "Türk Kahvecisi"
+
+    # name:en only
+    el_en = {
+        "type": "node",
+        "id": 15,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {"amenity": "cafe", "name:en": "Coffee Hub"},
+    }
+    poi_en = normalize_element(el_en, PRESETS)
+    assert poi_en is not None and poi_en.name == "Coffee Hub"
+
+    # brand fallback
+    el_brand = {
+        "type": "node",
+        "id": 16,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {"amenity": "cafe", "brand": "BrandCafe"},
+    }
+    poi_brand = normalize_element(el_brand, PRESETS)
+    assert poi_brand is not None and poi_brand.name == "BrandCafe"
+
+    # operator fallback
+    el_op = {
+        "type": "node",
+        "id": 17,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {"amenity": "cafe", "operator": "City Municipality"},
+    }
+    poi_op = normalize_element(el_op, PRESETS)
+    assert poi_op is not None and poi_op.name == "City Municipality"
+
+    # completely unnamed
+    el_unnamed = {
+        "type": "node",
+        "id": 18,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {"amenity": "cafe"},
+    }
+    assert normalize_element(el_unnamed, PRESETS, include_unnamed=False) is None
+    poi_unnamed = normalize_element(el_unnamed, PRESETS, include_unnamed=True)
+    assert poi_unnamed is not None and poi_unnamed.name == ""
+
+
+def test_website_without_scheme_adds_https() -> None:
+    el_no_scheme = {
+        "type": "node",
+        "id": 19,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {"amenity": "cafe", "name": "Web Kafe", "website": "example.org/menu"},
+    }
+    poi = normalize_element(el_no_scheme, PRESETS)
+    assert poi is not None
+    assert poi.website == "https://example.org/menu"
+
+    el_with_http = {
+        "type": "node",
+        "id": 20,
+        "lat": 41.0,
+        "lon": 29.0,
+        "tags": {"amenity": "cafe", "name": "Web Kafe 2", "website": "http://example.org"},
+    }
+    poi2 = normalize_element(el_with_http, PRESETS)
+    assert poi2 is not None
+    assert poi2.website == "http://example.org"
+
