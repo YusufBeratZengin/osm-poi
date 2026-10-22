@@ -116,3 +116,50 @@ def test_custom_presets_file_overrides(tmp_path: Path) -> None:
     presets = load_presets(path)
     assert presets["cafe"].tag_sets == ({"shop": ("coffee",)},)
     assert "restaurant" in presets
+
+
+def test_builtin_presets_schema_and_uniqueness() -> None:
+    from importlib import resources
+
+    raw_text = resources.files("osm_poi").joinpath("data/presets.json").read_text(encoding="utf-8")
+    data = json.loads(raw_text)
+
+    assert isinstance(data, dict)
+    assert len(data) >= 40
+
+    required_new = {
+        "supermarket",
+        "clothes",
+        "gym",
+        "school",
+        "car_repair",
+        "lawyer",
+        "estate_agent",
+        "stationery",
+        "notary",
+        "car_wash",
+        "butcher",
+        "dry_cleaning",
+        "driving_school",
+    }
+    assert required_new <= set(data.keys())
+
+    seen_names: set[str] = set()
+    for name, spec in data.items():
+        assert name not in seen_names, f"Duplicate preset name {name}"
+        seen_names.add(name)
+        assert isinstance(name, str) and name.replace("_", "").isalnum()
+        assert isinstance(spec, dict)
+        assert "label" in spec and isinstance(spec["label"], str) and spec["label"].strip()
+        tags = spec.get("tags")
+        assert isinstance(tags, list) and len(tags) > 0, f"Preset {name} has empty tags"
+        for tag_set in tags:
+            assert isinstance(tag_set, dict) and len(tag_set) > 0
+            for k, v in tag_set.items():
+                assert isinstance(k, str) and k.strip()
+                if isinstance(v, list):
+                    assert len(v) > 0
+                    assert all(isinstance(item, str) and item.strip() for item in v)
+                else:
+                    assert isinstance(v, str) and v.strip()
+
