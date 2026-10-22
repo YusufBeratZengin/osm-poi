@@ -45,18 +45,31 @@ def safe_cell(value: str) -> str:
     return value
 
 
-def write_csv(pois: Sequence[Poi], stream: TextIO) -> None:
+def write_csv(
+    pois: Sequence[Poi],
+    stream: TextIO,
+    fields: Sequence[str] | None = None,
+) -> None:
+    cols = tuple(fields) if fields is not None else FIELDS
     writer = csv.writer(stream, lineterminator="\n")
-    writer.writerow(FIELDS)
+    writer.writerow(cols)
     for poi in pois:
         row = poi.as_dict()
-        writer.writerow([safe_cell(v) if isinstance(v, str) else v for v in row.values()])
+        writer.writerow(
+            [safe_cell(row.get(col, "")) if isinstance(row.get(col, ""), str) else row.get(col, "") for col in cols]
+        )
 
 
-def geojson_document(pois: Sequence[Poi]) -> dict[str, Any]:
+def geojson_document(
+    pois: Sequence[Poi],
+    fields: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    cols = set(fields) if fields is not None else set(FIELDS)
     features = []
     for poi in pois:
-        properties = {k: v for k, v in poi.as_dict().items() if k not in {"lat", "lon"}}
+        properties = {
+            k: v for k, v in poi.as_dict().items() if k not in {"lat", "lon"} and k in cols
+        }
         features.append(
             {
                 "type": "Feature",
@@ -74,24 +87,40 @@ def geojson_document(pois: Sequence[Poi]) -> dict[str, Any]:
     }
 
 
-def write_geojson(pois: Sequence[Poi], stream: TextIO) -> None:
-    json.dump(geojson_document(pois), stream, ensure_ascii=False, indent=2)
+def write_geojson(
+    pois: Sequence[Poi],
+    stream: TextIO,
+    fields: Sequence[str] | None = None,
+) -> None:
+    json.dump(geojson_document(pois, fields=fields), stream, ensure_ascii=False, indent=2)
     stream.write("\n")
 
 
-def write_jsonl(pois: Sequence[Poi], stream: TextIO) -> None:
+def write_jsonl(
+    pois: Sequence[Poi],
+    stream: TextIO,
+    fields: Sequence[str] | None = None,
+) -> None:
+    cols = tuple(fields) if fields is not None else None
     for poi in pois:
-        stream.write(json.dumps(poi.as_dict(), ensure_ascii=False) + "\n")
+        d = poi.as_dict()
+        if cols is not None:
+            d = {col: d.get(col, "") for col in cols}
+        stream.write(json.dumps(d, ensure_ascii=False) + "\n")
 
 
-def render(pois: Sequence[Poi], fmt: str) -> str:
+def render(
+    pois: Sequence[Poi],
+    fmt: str,
+    fields: Sequence[str] | None = None,
+) -> str:
     buffer = io.StringIO()
     if fmt == "csv":
-        write_csv(pois, buffer)
+        write_csv(pois, buffer, fields=fields)
     elif fmt == "geojson":
-        write_geojson(pois, buffer)
+        write_geojson(pois, buffer, fields=fields)
     elif fmt == "jsonl":
-        write_jsonl(pois, buffer)
+        write_jsonl(pois, buffer, fields=fields)
     else:
         raise OsmPoiError(f"Unknown output format {fmt!r}.")
     return buffer.getvalue()
@@ -101,12 +130,17 @@ def attribution_path(output: Path) -> Path:
     return output.with_name(output.name + ".ATTRIBUTION.txt")
 
 
-def write_output(pois: Sequence[Poi], target: str, fmt: str) -> Path | None:
+def write_output(
+    pois: Sequence[Poi],
+    target: str,
+    fmt: str,
+    fields: Sequence[str] | None = None,
+) -> Path | None:
     """Write to a file (plus attribution file) or to stdout when ``target`` is ``-``.
 
     Returns the attribution file path, or None for stdout.
     """
-    text = render(pois, fmt)
+    text = render(pois, fmt, fields=fields)
     if target == "-":
         sys.stdout.write(text)
         return None

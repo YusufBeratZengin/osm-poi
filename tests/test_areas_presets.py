@@ -22,6 +22,35 @@ def test_parse_bbox() -> None:
     assert parse_bbox("40.9, 29.0, 41.0, 29.1") == BBox(40.9, 29.0, 41.0, 29.1)
 
 
+def test_bbox_area_and_tiling_math() -> None:
+    box = BBox(40.0, 28.0, 41.0, 29.0)
+    assert box.area_sq_degrees() == pytest.approx(1.0)
+
+    # Split 1 returns self
+    assert box.split(1) == [box]
+
+    # Split 2 returns 4 tiles
+    tiles = box.split(2)
+    assert len(tiles) == 4
+    assert tiles[0] == BBox(40.0, 28.0, 40.5, 28.5)
+    assert tiles[1] == BBox(40.0, 28.5, 40.5, 29.0)
+    assert tiles[2] == BBox(40.5, 28.0, 41.0, 28.5)
+    assert tiles[3] == BBox(40.5, 28.5, 41.0, 29.0)
+
+    total_tile_area = sum(t.area_sq_degrees() for t in tiles)
+    assert total_tile_area == pytest.approx(box.area_sq_degrees())
+
+    with pytest.raises(AreaError):
+        box.split(0)
+
+
+def test_polygon_area_math() -> None:
+    # 1x1 degree square polygon
+    poly = Polygon(((40.0, 28.0), (40.0, 29.0), (41.0, 29.0), (41.0, 28.0)))
+    assert poly.area_sq_degrees() == pytest.approx(1.0)
+
+
+
 @pytest.mark.parametrize(
     "text", ["1,2,3", "a,b,c,d", "5,0,1,1", "0,5,1,1", "-95,0,1,1", "0,0,1,200"]
 )

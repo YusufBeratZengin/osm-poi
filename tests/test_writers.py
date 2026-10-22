@@ -110,3 +110,26 @@ def test_unicode_survives(tmp_path: Path) -> None:
     target = tmp_path / "o.jsonl"
     write_output([poi("Çiçek Kafe")], str(target), "jsonl")
     assert "Çiçek Kafe" in target.read_text(encoding="utf-8")
+
+
+def test_render_with_custom_fields_csv() -> None:
+    p = poi("Test Kafe", phone="+90 216 111", email="k@example.com")
+    text = render([p], "csv", fields=["name", "category", "phone"])
+    lines = text.strip().splitlines()
+    assert lines[0] == "name,category,phone"
+    assert lines[1] == "Test Kafe,cafe,+90 216 111"
+
+
+def test_render_with_custom_fields_geojson() -> None:
+    p = poi("Test Kafe", phone="+90 216 111", email="k@example.com")
+    doc = json.loads(render([p], "geojson", fields=["name", "category"]))
+    feature = doc["features"][0]
+    assert feature["geometry"]["coordinates"] == [29.5, 40.5]
+    assert feature["properties"] == {"name": "Test Kafe", "category": "cafe"}
+
+
+def test_render_with_custom_fields_jsonl() -> None:
+    p = poi("Test Kafe", phone="+90 216 111", email="k@example.com")
+    line = render([p], "jsonl", fields=["name", "category"]).strip()
+    assert json.loads(line) == {"name": "Test Kafe", "category": "cafe"}
+

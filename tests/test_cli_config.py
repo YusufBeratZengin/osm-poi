@@ -92,6 +92,7 @@ def test_no_cache_flag_hits_server_every_time(fake_server: FakeServer, tmp_path:
         "-o",
         str(tmp_path / "o.jsonl"),
         "--no-cache",
+        "--allow-large",
     ]
     argv += base_args(fake_server, tmp_path)
     main(argv)
@@ -166,3 +167,114 @@ def test_config_rejects_unknown_key_and_bad_values(tmp_path: Path) -> None:
         load_config(None, {"OSM_POI_TIMEOUT": "abc", "OSM_POI_CONFIG": ""})
     with pytest.raises(ConfigError, match="not found"):
         load_config(tmp_path / "missing.json", {})
+
+
+def test_fetch_no_contact_flag_drops_columns(
+    fake_server: FakeServer, tmp_path: Path
+) -> None:
+    fake_server.set_default("/interpreter", 200, {"elements": CAFE_ELEMENTS})
+    target = tmp_path / "out_nocontact.csv"
+    args = [
+        "fetch",
+        "--bbox",
+        "40.9,29,41,29.1",
+        "-c",
+        "cafe",
+        "-o",
+        str(target),
+        "--no-contact",
+    ]
+    assert main([*args, *base_args(fake_server, tmp_path)]) == 0
+    header = target.read_text(encoding="utf-8").splitlines()[0].split(",")
+    assert "phone" not in header
+    assert "website" not in header
+    assert "email" not in header
+    assert "name" in header and "lat" in header
+
+
+def test_fetch_fields_flag_selects_columns(
+    fake_server: FakeServer, tmp_path: Path
+) -> None:
+    fake_server.set_default("/interpreter", 200, {"elements": CAFE_ELEMENTS})
+    target = tmp_path / "out_fields.csv"
+    args = [
+        "fetch",
+        "--bbox",
+        "40.9,29,41,29.1",
+        "-c",
+        "cafe",
+        "-o",
+        str(target),
+        "--fields",
+        "name,category,lat,lon",
+    ]
+    assert main([*args, *base_args(fake_server, tmp_path)]) == 0
+    lines = target.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == "name,category,lat,lon"
+    assert lines[1].startswith("Kahve Evi,cafe,40.99,29.03")
+
+
+def test_fetch_unknown_fields_flag_fails(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(
+        [
+            "fetch",
+            "--bbox",
+            "40.9,29,41,29.1",
+            "-c",
+            "cafe",
+            "--fields",
+            "name,invalid_col",
+            "--dry-run",
+        ]
+    )
+    assert code == 2
+    assert "Unknown field 'invalid_col'" in capsys.readouterr().err
+
+
+def test_large_area_refused_without_allow_large(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # 40.0 to 41.0 (1 deg lat) x 28.0 to 29.0 (1 deg lon) = 1.0 sq deg > default 0.25 sq deg
+    code = main(["fetch", "--bbox", "40.0,28.0,41.0,29.0", "-c", "cafe", "--dry-run"])
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "exceeds the limit" in err
+    assert "--allow-large" in err
+
+
+def test_large_area_allowed_with_allow_large(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    code = main(
+        [
+            "fetch",
+            "--bbox",
+            "40.0,28.0,41.0,29.0",
+            "-c",
+            "cafe",
+            "--allow-large",
+            "--dry-run",
+        ]
+    )
+    assert code == 0
+    assert "[out:json]" in capsys.readouterr().out
+
+
+def test_split_bbox_tiles_in_dry_run(capsys: pytest.CaptureFixture[str]) -> None:
+    # Split 2 on bbox tiles it into 2x2 = 4 queries
+    code = main(
+        [
+            "fetch",
+            "--bbox",
+            "40.0,28.0,40.4,28.4",
+            "-c",
+            "cafe",
+            "--split",
+            "2",
+            "--dry-run",
+        ]
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert out.count("[out:json]") == 4
+

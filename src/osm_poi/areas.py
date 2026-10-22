@@ -33,6 +33,30 @@ class BBox:
     def overpass_filter(self) -> str:
         return f"({_num(self.south)},{_num(self.west)},{_num(self.north)},{_num(self.east)})"
 
+    def area_sq_degrees(self) -> float:
+        """Area in square degrees."""
+        return (self.north - self.south) * (self.east - self.west)
+
+    def split(self, n: int) -> list[BBox]:
+        """Tile the bounding box into n x n sub-boxes."""
+        if n < 1:
+            raise AreaError(f"Split count must be at least 1, got {n}.")
+        if n == 1:
+            return [self]
+        lat_step = (self.north - self.south) / n
+        lon_step = (self.east - self.west) / n
+        tiles: list[BBox] = []
+        for i in range(n):
+            s = self.south + i * lat_step
+            north_val = self.north if i == n - 1 else self.south + (i + 1) * lat_step
+            for j in range(n):
+                w = self.west + j * lon_step
+                east_val = self.east if j == n - 1 else self.west + (j + 1) * lon_step
+                tiles.append(
+                    BBox(round(s, 7), round(w, 7), round(north_val, 7), round(east_val, 7))
+                )
+        return tiles
+
 
 @dataclass(frozen=True)
 class Polygon:
@@ -51,6 +75,18 @@ class Polygon:
         coords = " ".join(f"{_num(lat)} {_num(lon)}" for lat, lon in self.points)
         return f'(poly:"{coords}")'
 
+    def area_sq_degrees(self) -> float:
+        """Area in square degrees using the Shoelace formula."""
+        pts = self.points
+        if len(pts) < 3:
+            return 0.0
+        total = 0.0
+        n = len(pts)
+        for i in range(n):
+            j = (i + 1) % n
+            total += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1]
+        return abs(total) * 0.5
+
 
 @dataclass(frozen=True)
 class OsmArea:
@@ -64,6 +100,10 @@ class OsmArea:
 
     def definition(self) -> str:
         return f"area({self.area_id})->.a{self.area_id};"
+
+    def area_sq_degrees(self) -> float:
+        return 0.0
+
 
 
 Area = BBox | Polygon | OsmArea

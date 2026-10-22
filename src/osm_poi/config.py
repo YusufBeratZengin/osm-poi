@@ -34,6 +34,7 @@ class Config:
     cache_dir: Path | None = None
     cache_ttl_hours: float = 24.0 * 7
     use_cache: bool = True
+    max_area: float = 0.25
 
     def resolved_cache_dir(self) -> Path:
         return self.cache_dir if self.cache_dir is not None else default_cache_dir()
@@ -76,6 +77,7 @@ _FLOAT_KEYS = (
     "overpass_interval",
     "nominatim_interval",
     "cache_ttl_hours",
+    "max_area",
 )
 _STR_KEYS = ("user_agent", "overpass_url", "nominatim_url")
 
