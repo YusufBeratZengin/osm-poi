@@ -13,19 +13,21 @@ isteyen küçük ajanslar, araştırmacılar ve sivil projeler için hazırland�
 
 - Alan girişi: sınırlayıcı kutu (bbox), idari bölge adı (Nominatim ile çözülür) veya GeoJSON
   poligonu. Birden fazla alan birlikte kullanılabilir.
-- Kategori ön ayarları (`cafe`, `restaurant`, `pharmacy`, `dentist`, `real_estate_agent`,
-  `hairdresser`, `hotel` ve daha fazlası) düz bir JSON dosyasında tutulur, genişletilebilir.
+- Kategori ön ayarları (`cafe`, `restaurant`, `pharmacy`, `dentist`, `real_estate_agent`, `estate_agent`,
+  `hairdresser`, `hotel`, `stationery`, `notary`, `car_repair` ve daha fazlası) düz bir JSON dosyasında tutulur.
 - Düğüm (node), yol (way) ve ilişki (relation) türlerinin hepsi sorgulanır; yol ve ilişkilerde
   merkez nokta kullanılır.
 - Düzenlenmiş alanlar: ad, kategori, adres parçaları, telefon, web sitesi, e-posta, çalışma
   saatleri, OSM kimliği ve bağlantısı.
 - Aynı OSM nesnesinin tekrarları ile yakın kopyalar (varsayılan olarak 75 m içinde aynı ad ve
   kategori; örneğin bina çizimi ile nokta) temizlenir.
-- CSV, GeoJSON veya JSONL çıktısı. CSV hücreleri elektronik tabloda formül çalıştırmaya karşı
-  korunur.
+- Alan boyutu güvenliği: aşırı yüklenmeyi önlemek amacıyla `--allow-large` seçeneği verilmedikçe
+  0.25 derece kare üzerindeki alanları sorgulamayı durdurur; `--split N` ile kutular alt bölgelere ayrılabilir.
+- Gizlilik ve uyumluluk: `--no-contact` seçeneği telefon, web sitesi ve e-posta sütunlarını çıktıdan
+  kaldırır; `--fields` seçeneği ile yalnız istenen sütunlar dışa aktarılabilir.
+- CSV, GeoJSON veya JSONL çıktısı. CSV hücreleri elektronik tabloda formül çalıştırmaya karşı korunur.
 - Nazik çalışır: User-Agent zorunlu, istekler arasında bekleme, 429 ve 5xx hatalarında üstel
-  geri çekilmeyle yeniden deneme (`Retry-After` dikkate alınır) ve her isteğin özetiyle
-  adlandırılan disk önbelleği.
+  geri çekilmeyle yeniden deneme (`Retry-After` dikkate alınır) ve disk önbelleği.
 - `--dry-run` Overpass sorgusunu göndermeden yazdırır.
 - ODbL atıf metni her çıktı dosyasının yanına yazılır.
 
@@ -69,6 +71,99 @@ country, phone, website, email, opening_hours`
 
 Adı olmayan kayıtlar `--include-unnamed` verilmedikçe atlanır. Eksik değerler boş metindir.
 
+## Örnek çıktı
+
+### Kadıköy uygulamalı örneği
+
+Bu Kadıköy örneğinde kafe ve restoranlar sorgulandığında OpenStreetMap'ten 5 ham kayıt gelir:
+birbirine 25 metre mesafede "Moda Kahvecisi"ne ait bir nokta (node) ile bir bina çevresi (way),
+bir balık restoranı ("Kadıköy Balıkçısı"), bir kitap kafe ("Bahariye Kitap Kafe") ve adı olmayan
+bir kafe noktası. İşleme aşamasında:
+
+1. **İsimsiz kayıtların filtrelenmesi**: Adı olmayan kayıtlar varsayılan olarak atlanır ve isimsiz
+   kafe elenir.
+2. **Tekilleştirme (Deduplication)**: 75 metre mesafe içinde aynı düzenlenmiş ada ("moda kahvecisi")
+   sahip bina çizimi ve nokta tespit edilir. Daha eksiksiz iletişim ve adres bilgisi içeren nokta
+   kaydı muhafaza edilip kopya çizim birleştirilir.
+3. **Temiz sonuç**: Sonuçta tam olarak 3 tekilleştirilmiş işletme kaydı üretilir.
+
+### CSV çıktı kesiti
+
+```csv
+osm_type,osm_id,osm_url,name,category,lat,lon,street,housenumber,postcode,city,country,phone,website,email,opening_hours
+node,101,https://www.openstreetmap.org/node/101,Moda Kahvecisi,cafe,40.99,29.03,Moda Caddesi,12,,Kadıköy,TR,+90 216 555 0101,https://example.org/moda,,Mo-Su 08:00-22:00
+node,303,https://www.openstreetmap.org/node/303,Kadıköy Balıkçısı,restaurant,40.985,29.025,Balıkçı Sokak,5,,Kadıköy,TR,+90 216 555 0102,https://example.org/balik,,Tu-Su 12:00-23:00
+node,404,https://www.openstreetmap.org/node/404,Bahariye Kitap Kafe,cafe,40.982,29.028,Bahariye Caddesi,42,,Kadıköy,TR,+90 216 555 0103,https://example.org/kitap,,Mo-Sa 09:00-21:00
+```
+
+### GeoJSON özellik kesiti
+
+```json
+{
+  "type": "Feature",
+  "id": "node/101",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      29.03,
+      40.99
+    ]
+  },
+  "properties": {
+    "osm_type": "node",
+    "osm_id": 101,
+    "osm_url": "https://www.openstreetmap.org/node/101",
+    "name": "Moda Kahvecisi",
+    "category": "cafe",
+    "street": "Moda Caddesi",
+    "housenumber": "12",
+    "postcode": "",
+    "city": "Kadıköy",
+    "country": "TR",
+    "phone": "+90 216 555 0101",
+    "website": "https://example.org/moda",
+    "email": "",
+    "opening_hours": "Mo-Su 08:00-22:00"
+  }
+}
+```
+
+## Python API
+
+`osm-poi` paketini bir Python kütüphanesi olarak doğrudan kullanabilirsiniz:
+
+```python
+from osm_poi import Poi, fetch_pois
+
+pois = fetch_pois(
+    bbox="40.95,29.00,41.03,29.11",
+    categories=["cafe", "restaurant"],
+    user_agent="my-app/1.0 (contact@example.org)",
+)
+
+for poi in pois:
+    print(f"{poi.name} ({poi.category}) - {poi.lat}, {poi.lon} - {poi.phone or 'no phone'}")
+```
+
+Dönen nesneler [`Poi`](src/osm_poi/models.py) sınıfının örnekleridir. Dışa açık fonksiyonlar ve sınıflar
+`__all__` listesinde tanımlıdır: `fetch_pois`, `Poi`, `BBox`, `Polygon`, `Config` ve `load_config`.
+
+## Sorumlu kullanım
+
+OpenStreetMap verileri topluluk gönüllüleri tarafından girilmekte ve güncellenmektedir. İşletme
+kayıtları çoğunlukla açık iletişim bilgileri içerse de şu hususlara dikkat edilmelidir:
+
+- **Gizlilik seçenekleri**: `--no-contact` bayrağı ile `phone`, `website` ve `email` sütunlarını çıktıdan
+  tamamen kaldırabilir veya `--fields name,category,lat,lon` ile yalnızca istediğiniz sütunları seçebilirsiniz.
+- **Kişisel verilerin korunması (KVKK / GDPR)**: Şahıs şirketleri, serbest meslek mensupları veya
+  bireysel uzmanlarla ilişkili iletişim bilgileri 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK)
+  ve Avrupa Genel Veri Koruma Tüzüğü (GDPR) kapsamında kişisel veri niteliği taşıyabilir.
+- **Elektronik ticari ileti ve spam mevzuatı**: İstenmeyen ticari iletiler (onaysız soğuk e-posta,
+  otomatik arama veya SMS) 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari
+  Elektronik İleti Yönetim Sistemi (İYS) düzenlemelerine tabidir.
+- **Yasal sorumluluk**: Bu dokümantasyon bir hukuki görüş değildir. Veri toplama ve iletişim
+  süreçlerinizin yürürlükteki mevzuata uygunluğunu değerlendirmek kullanıcının sorumluluğundadır.
+
 ## Ön ayarlar
 
 `osm-poi presets` ile listelenir. Ön ayar eklemek ya da değiştirmek için `--presets-file my.json`
@@ -108,6 +203,13 @@ komut satırı seçenekleri.
 | `cache_dir` | `OSM_POI_CACHE_DIR` | `--cache-dir` | kullanıcı önbellek dizini |
 | `cache_ttl_hours` | `OSM_POI_CACHE_TTL_HOURS` | `--cache-ttl-hours` | 168 |
 | `use_cache` | `OSM_POI_USE_CACHE` | `--no-cache` | açık |
+| `max_area` | `OSM_POI_MAX_AREA` | `--max-area` | 0.25 derece kare |
+
+Ek komut satırı seçenekleri:
+- `--no-contact`: telefon, web sitesi ve e-posta sütunlarını çıktıdan çıkarır.
+- `--fields LIST`: dışa aktarılacak sütunların listesi (örn. `--fields name,category,lat,lon`).
+- `--allow-large`: alan boyutu güvenlik sınırını devre dışı bırakır.
+- `--split N`: sınırlayıcı kutuyu $N \times N$ parçaya bölerek sıralı ve aralıklı alt sorgular gönderir.
 
 Yapılandırma dosyası aynı anahtarlarla bir JSON'dur. Konumu `--config`, `OSM_POI_CONFIG` ya da
 `~/.config/osm-poi/config.json` (Windows'ta `%APPDATA%\osm-poi\config.json`) olur.
@@ -131,11 +233,6 @@ Veri OpenStreetMap'ten gelir ve
 veritabanı aynı lisansla paylaşılmalıdır. osm-poi her dosyanın yanına `<çıktı>.ATTRIBUTION.txt`
 yazar ve GeoJSON çıktısına `attribution` ile `license` alanlarını ekler. Bkz.
 [OSM telif sayfası](https://www.openstreetmap.org/copyright). Bu bir hukuki görüş değildir.
-
-OpenStreetMap, gönüllülerin girdiği veriler içerir; bunların arasında işletmelerin telefon
-numaraları ve adresleri bulunabilir. Birileriyle iletişime geçmeden önce kullanımınıza uygulanan
-gizlilik ve pazarlama kurallarını (örneğin KVKK, GDPR ve istenmeyen ileti düzenlemeleri)
-kontrol edin.
 
 ## Geliştirme
 

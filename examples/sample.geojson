@@ -1,0 +1,89 @@
+{
+  "type": "FeatureCollection",
+  "attribution": "Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright",
+  "license": "ODbL-1.0",
+  "copyright": "https://www.openstreetmap.org/copyright",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "node/101",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.03,
+          40.99
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 101,
+        "osm_url": "https://www.openstreetmap.org/node/101",
+        "name": "Moda Kahvecisi",
+        "category": "cafe",
+        "street": "Moda Caddesi",
+        "housenumber": "12",
+        "postcode": "",
+        "city": "Kadıköy",
+        "country": "TR",
+        "phone": "+90 216 555 0101",
+        "website": "https://example.org/moda",
+        "email": "",
+        "opening_hours": "Mo-Su 08:00-22:00"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/303",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.025,
+          40.985
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 303,
+        "osm_url": "https://www.openstreetmap.org/node/303",
+        "name": "Kadıköy Balıkçısı",
+        "category": "restaurant",
+        "street": "Balıkçı Sokak",
+        "housenumber": "5",
+        "postcode": "",
+        "city": "Kadıköy",
+        "country": "TR",
+        "phone": "+90 216 555 0102",
+        "website": "https://example.org/balik",
+        "email": "",
+        "opening_hours": "Tu-Su 12:00-23:00"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/404",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.028,
+          40.982
+        ]
+      },
+      "properties": {
+        "osm_type": "node",
+        "osm_id": 404,
+        "osm_url": "https://www.openstreetmap.org/node/404",
+        "name": "Bahariye Kitap Kafe",
+        "category": "cafe",
+        "street": "Bahariye Caddesi",
+        "housenumber": "42",
+        "postcode": "",
+        "city": "Kadıköy",
+        "country": "TR",
+        "phone": "+90 216 555 0103",
+        "website": "https://example.org/kitap",
+        "email": "",
+        "opening_hours": "Mo-Sa 09:00-21:00"
+      }
+    }
+  ]
+}
