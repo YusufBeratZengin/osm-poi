@@ -41,7 +41,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "ruff>=0.5", "mypy>=1.8", "build>=1.0", "twine>=5.0"]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.5", "mypy>=1.8", "build>=1.0", "twine>=5.0"]
 
 [project.urls]
 Homepage = "https://github.com/YusufBeratZengin/osm-poi"
@@ -60,7 +60,15 @@ osm_poi = ["data/*.json", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra --cov=osm_poi --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/osm_poi"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
 
 [tool.ruff]
 line-length = 100

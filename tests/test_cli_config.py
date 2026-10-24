@@ -273,3 +273,15 @@ def test_split_bbox_tiles_in_dry_run(capsys: pytest.CaptureFixture[str]) -> None
     assert code == 0
     out = capsys.readouterr().out
     assert out.count("[out:json]") == 4
+
+
+def test_main_module_invocation(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import runpy
+
+    monkeypatch.setattr("sys.argv", ["osm-poi", "--version"])
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_module("osm_poi", run_name="__main__")
+    assert exc_info.value.code == 0
+    assert "osm-poi 0.1.0" in capsys.readouterr().out
