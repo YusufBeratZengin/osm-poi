@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 502" width="100%" height="502" style="max-width:820px;">
+  <defs>
+    <linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#0d1117'/>
+      <stop offset='100%' stop-color='#161b22'/>
+    </linearGradient>
+  </defs>
+  <rect width='820' height='502' rx='10' fill='url(#bg)' stroke='#30363d' stroke-width='1.5'/>
+  <!-- Window controls -->
+  <circle cx='24' cy='24' r='6' fill='#ff5f56'/>
+  <circle cx='44' cy='24' r='6' fill='#ffbd2e'/>
+  <circle cx='64' cy='24' r='6' fill='#27c93f'/>
+  <!-- Title -->
+  <text x='410' y='28' text-anchor='middle' fill='#8b949e' font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace' font-size='12' font-weight='600'>osm-poi — terminal</text>
+  <line x1='0' y1='44' x2='820' y2='44' stroke='#30363d' stroke-width='1'/>
+  <!-- Terminal content -->
+  <g font-family='ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace' font-size='12.5'>
+    <text x="24" y="58"><tspan fill="#58a6ff" font-weight="700">$</tspan><tspan fill="#f0f6fc" font-weight="600"> export OSM_POI_USER_AGENT=&quot;my-project/1.0 (contact@example.org)&quot;</tspan></text>
+    <text x="24" y="80"><tspan fill="#58a6ff" font-weight="700">$</tspan><tspan fill="#f0f6fc" font-weight="600"> osm-poi fetch --bbox 40.95,29.00,41.03,29.11 -c cafe,restaurant -o out.csv</tspan></text>
+    <text x="24" y="102" fill="#79c0ff">5 elements, 4 usable, 3 after deduplication.</text>
+    <text x="24" y="124" fill="#7ee787">Wrote out.csv and out.csv.ATTRIBUTION.txt</text>
+    <text x="24" y="146" fill="#8b949e">Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright</text>
+    <text x="24" y="190"><tspan fill="#58a6ff" font-weight="700">$</tspan><tspan fill="#f0f6fc" font-weight="600"> head -n 4 out.csv</tspan></text>
+    <text x="24" y="212" fill="#f9e2af">osm_type,osm_id,osm_url,name,category,lat,lon,street,housenumber,postcode,city,country,phone,website,email,opening_hours</text>
+    <text x="24" y="234" fill="#cdd6f4">node,101,https://www.openstreetmap.org/node/101,Moda Kahvecisi,cafe,40.99,29.03,Moda Caddesi,12,,Kadıköy,,+90 216 555 0101,https://example.org/moda,,Mo-Su 08:00-22:00</text>
+    <text x="24" y="256" fill="#cdd6f4">node,303,https://www.openstreetmap.org/node/303,Kadıköy Balıkçısı,restaurant,40.985,29.025,Balıkçı Sokak,5,,Kadıköy,,+90 216 555 0102,,,Tu-Su 12:00-23:00</text>
+    <text x="24" y="278" fill="#cdd6f4">node,404,https://www.openstreetmap.org/node/404,Bahariye Kitap Kafe,cafe,40.982,29.028,Bahariye Caddesi,42,,Kadıköy,,+90 216 555 0103,,,Mo-Sa 09:00-21:00</text>
+    <text x="24" y="322"><tspan fill="#58a6ff" font-weight="700">$</tspan><tspan fill="#f0f6fc" font-weight="600"> osm-poi presets | grep -E &#x27;cafe|restaurant|pharmacy|bakery&#x27;</tspan></text>
+    <text x="24" y="344" fill="#cdd6f4">bakery               Bakeries</text>
+    <text x="24" y="366" fill="#cdd6f4">cafe                 Cafes</text>
+    <text x="24" y="388" fill="#cdd6f4">dentist              Dentists</text>
+    <text x="24" y="410" fill="#cdd6f4">pharmacy             Pharmacies</text>
+    <text x="24" y="432" fill="#cdd6f4">real_estate_agent    Real estate agents</text>
+    <text x="24" y="454" fill="#cdd6f4">restaurant           Restaurants</text>
+  </g>
+</svg>
