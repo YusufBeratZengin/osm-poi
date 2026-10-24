@@ -1,93 +1,96 @@
 # osm-poi
 
 [![CI](https://github.com/YusufBeratZengin/osm-poi/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufBeratZengin/osm-poi/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/osm-poi.svg)](https://pypi.org/project/osm-poi/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Export points of interest (businesses, amenities, shops) from OpenStreetMap to CSV, GeoJSON or
-JSONL. It talks to the public Overpass API and Nominatim, follows their usage policies and has
-no runtime dependencies beyond the Python standard library.
+> Export points of interest (businesses, amenities, shops) from OpenStreetMap to CSV, GeoJSON or JSONL with category presets, polite rate-limiting, and automatic deduplication.
 
-It is meant for small agencies, researchers and civic projects that need a free and legal way to
-list businesses in an area without a paid Places API.
+<p align="center">
+  <img src="docs/demo.svg" alt="osm-poi terminal demo" width="820">
+</p>
+
+## Why osm-poi?
+
+- **Zero paid API keys or vendor lock-in**: No costly Google Places or Mapbox bills. Queries OpenStreetMap's Overpass API and Nominatim directly and legally with zero runtime dependencies beyond Python's standard library.
+- **Production-grade hygiene and deduplication**: Queries nodes, ways, and relations; cleans CSV formula-injection risks; standardizes phone and website formats; and intelligently merges building outline polygons with point nodes within 75 meters.
+- **Polite and compliant by design**: Protects public servers with request spacing, exponential backoff, area safety limits (`--max-area`), and bounding box tiling (`--split`). Generates ODbL attributions automatically and includes privacy flags (`--no-contact`) for GDPR/KVKK compliance.
 
 ## Features
 
-- Area input: bounding box, administrative area name (resolved through Nominatim) or a GeoJSON
-  polygon. Several areas can be combined.
-- Category presets (`cafe`, `restaurant`, `pharmacy`, `dentist`, `real_estate_agent`, `estate_agent`,
-  `hairdresser`, `hotel`, `stationery`, `notary`, `car_repair`, and more) defined in plain JSON.
-- Nodes, ways and relations are all queried; ways and relations use their centre point.
-- Normalized fields: name, category, address parts, phone, website, email, opening hours,
-  OSM id and URL.
-- Deduplication of identical OSM objects and near-duplicates (same name and category within
-  75 m by default, for example a building outline plus a node).
-- Area size safety: protects Overpass servers by enforcing a default 0.25 sq deg area limit
-  unless `--allow-large` is given, with `--split N` to tile large bounding boxes.
-- Privacy-conscious: `--no-contact` drops phone, website, and email columns, while `--fields`
-  allows selecting exact columns.
-- Output as CSV, GeoJSON or JSONL. CSV cells are protected against spreadsheet formula injection.
-- Polite by default: configurable User-Agent (required), spacing between requests, retries with
-  exponential backoff on 429 and 5xx (honouring `Retry-After`), and on-disk caching.
-- `--dry-run` prints the Overpass query without sending it.
-- ODbL attribution is written next to every output file.
-
-## Install
-
-```
-pip install .
-```
-
-Python 3.10 or newer is required. From a checkout, `pip install -e ".[dev]"` adds test and
-lint tools.
+- **Flexible area inputs**: Bounding box (`--bbox`), administrative area name resolved via Nominatim (`--area`), or GeoJSON polygon files (`--polygon`). Multiple areas can be queried in a single run.
+- **Rich category presets**: Over 40 built-in presets (`cafe`, `restaurant`, `pharmacy`, `dentist`, `real_estate_agent`, `estate_agent`, `hairdresser`, `hotel`, `stationery`, `notary`, `car_repair`, `supermarket`, etc.) defined in plain JSON.
+- **Full geometry support**: Queries nodes, ways, and relations; ways and relations calculate their center points.
+- **Normalized output schema**: `osm_type, osm_id, osm_url, name, category, lat, lon, street, housenumber, postcode, city, country, phone, website, email, opening_hours`.
+- **Proximity deduplication**: Merges duplicate records sharing the same name and category within 75 meters (configurable via `--dedupe-radius`).
+- **Server safety guards**: Rejects queries exceeding 0.25 sq degrees by default unless `--allow-large` is supplied, with `--split N` to tile large areas into polite sub-queries.
+- **Privacy controls**: `--no-contact` strips phone, website, and email columns; `--fields` allows picking exact columns.
+- **Multi-format output**: Clean CSV (protected against spreadsheet formula injection), GeoJSON FeatureCollections, or line-delimited JSONL.
+- **Polite networking**: Enforced User-Agent identification, automatic pacing between calls, exponential retry backoff on 429/5xx, and local disk caching.
+- **Dry-run inspection**: `--dry-run` outputs generated Overpass QL without querying the server.
+- **Automated ODbL attribution**: Creates an attribution file next to each output file.
 
 ## Quick start
 
-Overpass and Nominatim require you to identify your application. Set a User-Agent with a way to
-contact you:
+### Installation
 
-```
-export OSM_POI_USER_AGENT="my-project/1.0 (me@example.org)"      # Linux, macOS
-$env:OSM_POI_USER_AGENT = "my-project/1.0 (me@example.org)"      # PowerShell
+```bash
+pip install osm-poi
 ```
 
-Then:
+Python 3.10 or newer is required.
 
+### Identification
+
+Overpass and Nominatim require you to identify your application. Set a `User-Agent` with contact information:
+
+```bash
+# Linux / macOS
+export OSM_POI_USER_AGENT="my-project/1.0 (contact@example.org)"
+
+# PowerShell
+$env:OSM_POI_USER_AGENT = "my-project/1.0 (contact@example.org)"
 ```
+
+### Basic Commands
+
+```bash
+# Fetch cafes and restaurants in Kadikoy to CSV
 osm-poi fetch --area "Kadikoy, Istanbul" --category cafe,restaurant -o out.csv
+
+# Fetch pharmacies by bounding box to GeoJSON
 osm-poi fetch --bbox 40.95,29.00,41.03,29.11 -c pharmacy -o pharmacies.geojson
+
+# Fetch dentists inside a polygon to JSONL
 osm-poi fetch --polygon district.geojson -c dentist -f jsonl -o dentists.jsonl
+
+# Preview the generated Overpass query without network calls
 osm-poi fetch --bbox 40.95,29.00,41.03,29.11 -c cafe --dry-run
+
+# List all available presets
 osm-poi presets
 ```
 
-`--bbox` uses the Overpass order: `south,west,north,east`. The output format comes from the file
-extension (`.csv`, `.geojson`/`.json`, `.jsonl`) or from `--format`. With `-o -` (the default) the
-result goes to standard output.
+`--bbox` follows the standard Overpass coordinate order: `south,west,north,east`. The output format is automatically inferred from the file extension (`.csv`, `.geojson`/`.json`, `.jsonl`) or overridden with `--format`. When using `-o -` (the default), output streams to standard output.
 
-### Output columns
+### Output Columns
 
-`osm_type, osm_id, osm_url, name, category, lat, lon, street, housenumber, postcode, city,
-country, phone, website, email, opening_hours`
+`osm_type, osm_id, osm_url, name, category, lat, lon, street, housenumber, postcode, city, country, phone, website, email, opening_hours`
 
-Features without a name are skipped unless you pass `--include-unnamed`. Missing values are empty
-strings.
+Features without a name are skipped unless `--include-unnamed` is supplied. Missing attributes are represented by empty strings.
 
-## Example output
+## Usage examples
 
-### Worked example: Kadıköy
+### Worked Example: Kadıköy
 
-In this Kadıköy worked example, querying cafes and restaurants returns 5 raw elements from
-OpenStreetMap: a node and a way outline for "Moda Kahvecisi" located 25 metres apart, a seafood
-restaurant ("Kadıköy Balıkçısı"), a book cafe ("Bahariye Kitap Kafe"), and an unnamed cafe node.
-During processing:
+In this Kadıköy worked example, querying cafes and restaurants returns 5 raw elements from OpenStreetMap: a node and a way outline for "Moda Kahvecisi" located 25 metres apart, a seafood restaurant ("Kadıköy Balıkçısı"), a book cafe ("Bahariye Kitap Kafe"), and an unnamed cafe node.
 
 1. **Unnamed filtering**: Features without a name are skipped by default, dropping the unnamed node.
-2. **Deduplication**: Deduplication identifies that the building way and the node share the same
-   normalized name ("moda kahvecisi") within 75 metres. The pass merges them into a single record,
-   retaining the node because it contains richer contact details (street address, phone number,
-   website, and opening hours).
+2. **Deduplication**: Deduplication identifies that the building way and the node share the same normalized name ("moda kahvecisi") within 75 metres. The pass merges them into a single record, retaining the node because it contains richer contact details (street address, phone number, website, and opening hours).
 3. **Clean output**: The final result yields exactly 3 deduplicated business records.
 
-### CSV output excerpt
+### CSV Output Excerpt
 
 ```csv
 osm_type,osm_id,osm_url,name,category,lat,lon,street,housenumber,postcode,city,country,phone,website,email,opening_hours
@@ -96,7 +99,7 @@ node,303,https://www.openstreetmap.org/node/303,Kadıköy Balıkçısı,restaura
 node,404,https://www.openstreetmap.org/node/404,Bahariye Kitap Kafe,cafe,40.982,29.028,Bahariye Caddesi,42,,Kadıköy,TR,+90 216 555 0103,https://example.org/kitap,,Mo-Sa 09:00-21:00
 ```
 
-### GeoJSON feature excerpt
+### GeoJSON Feature Excerpt
 
 ```json
 {
@@ -128,9 +131,9 @@ node,404,https://www.openstreetmap.org/node/404,Bahariye Kitap Kafe,cafe,40.982,
 }
 ```
 
-## Python API
+### Python API
 
-You can use `osm-poi` as a Python library:
+You can use `osm-poi` directly as a Python library:
 
 ```python
 from osm_poi import Poi, fetch_pois
@@ -145,30 +148,15 @@ for poi in pois:
     print(f"{poi.name} ({poi.category}) - {poi.lat}, {poi.lon} - {poi.phone or 'no phone'}")
 ```
 
-The returned objects are instances of [`Poi`](src/osm_poi/models.py). The public functions and
-classes are exported in `__all__`: `fetch_pois`, `Poi`, `BBox`, `Polygon`, `Config`, and `load_config`.
-
-## Responsible use
-
-OpenStreetMap data is entered and maintained by community volunteers. While business entries often
-contain publicly displayed contact tags, please keep the following in mind:
-
-- **Privacy flags**: You can pass `--no-contact` to omit `phone`, `website`, and `email` columns
-  from the output entirely, or use `--fields name,category,lat,lon` to select specific columns.
-- **Data protection (KVKK / GDPR)**: Contact information associated with sole proprietors,
-  freelancers, or individual professionals may constitute personal data under the Turkish Personal
-  Data Protection Law (KVKK No. 6698), the European General Data Protection Regulation (GDPR),
-  and similar international frameworks.
-- **Anti-spam and marketing regulations**: Unsolicited commercial communications (cold email,
-  automated calling, or commercial SMS) are strictly regulated by law (such as the Turkish Law on
-  the Regulation of Electronic Commerce No. 6563 and the Commercial Electronic Message Management
-  System / İYS).
-- **Disclaimer**: This documentation does not constitute legal advice. You are responsible for
-  evaluating the legal compliance of your own data collection and communication workflows.
+Public classes and functions exported in `__all__`:
+- `fetch_pois`: Fetch, normalize, and deduplicate POIs in a single call.
+- `Poi`: Strongly-typed dataclass representing normalized POI records.
+- `BBox`, `Polygon`: Spatial boundary primitives.
+- `Config`, `load_config`: Configuration management.
 
 ## Presets
 
-List them with `osm-poi presets`. To add or override presets, pass `--presets-file my.json`:
+List all presets with `osm-poi presets`. To define custom presets or override built-in ones, pass `--presets-file my_presets.json`:
 
 ```json
 {
@@ -177,18 +165,17 @@ List them with `osm-poi presets`. To add or override presets, pass `--presets-fi
     "tags": [{"shop": "bicycle"}]
   },
   "bar": {
+    "label": "Bars and pubs",
     "tags": [{"amenity": ["bar", "pub", "biergarten"]}]
   }
 }
 ```
 
-`tags` is a list of tag sets. A feature matches a preset if it matches any tag set; inside a tag
-set all keys must match. A value is a string, a list of alternatives, or `"*"` for "key exists".
+`tags` is a list of tag sets. A feature matches a preset if it satisfies any tag set; within a tag set, all key-value constraints must match. Values can be exact strings, lists of alternatives, or `"*"` to test key existence.
 
 ## Configuration
 
-Precedence, lowest to highest: defaults, JSON config file, environment variables, command-line
-flags.
+Precedence (lowest to highest): defaults, JSON config file, environment variables, command-line flags.
 
 | Setting | Environment variable | Flag | Default |
 |---|---|---|---|
@@ -205,45 +192,61 @@ flags.
 | `use_cache` | `OSM_POI_USE_CACHE` | `--no-cache` | true |
 | `max_area` | `OSM_POI_MAX_AREA` | `--max-area` | 0.25 square degrees |
 
-Additional command line options:
-- `--no-contact`: drop phone, website, and email columns from exported data.
-- `--fields LIST`: comma-separated column list to export (e.g. `--fields name,category,lat,lon`).
-- `--allow-large`: bypass the area size safety limit.
-- `--split N`: tile a bounding box into $N \times N$ sequential sub-queries with polite pacing.
+### CLI Options
 
-The config file is JSON with the same keys. Its location is `--config`, `OSM_POI_CONFIG`, or
-`~/.config/osm-poi/config.json` (`%APPDATA%\osm-poi\config.json` on Windows). `osm-poi cache path`
-shows the cache directory and `osm-poi cache clear` empties it.
+- `--no-contact`: Drop phone, website, and email columns from exported data.
+- `--fields LIST`: Comma-separated column list to export (e.g. `--fields name,category,lat,lon`).
+- `--allow-large`: Bypass the area size safety limit.
+- `--split N`: Tile a bounding box into $N \times N$ sequential sub-queries with polite pacing.
+
+Config files are resolved in order: `--config`, `OSM_POI_CONFIG`, or `~/.config/osm-poi/config.json` (`%APPDATA%\osm-poi\config.json` on Windows).
+Inspect or purge cache entries with `osm-poi cache path` and `osm-poi cache clear`.
+
+## Responsible use
+
+OpenStreetMap data is entered and maintained by community volunteers. While business entries often contain publicly displayed contact tags, please keep the following in mind:
+
+- **Privacy flags**: Pass `--no-contact` to omit `phone`, `website`, and `email` columns entirely, or use `--fields name,category,lat,lon` to select specific columns.
+- **Data protection (KVKK / GDPR)**: Contact information associated with sole proprietors, freelancers, or individual professionals may constitute personal data under the Turkish Personal Data Protection Law (KVKK No. 6698), the European General Data Protection Regulation (GDPR), and similar international frameworks.
+- **Anti-spam and marketing regulations**: Unsolicited commercial communications (cold email, automated calling, or commercial SMS) are strictly regulated by law (such as the Turkish Law on the Regulation of Electronic Commerce No. 6563 and the Commercial Electronic Message Management System / İYS).
+- **Disclaimer**: This documentation does not constitute legal advice. You are responsible for evaluating the legal compliance of your own data collection and communication workflows.
 
 ## Usage policies
 
-- [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/): at most one
-  request per second, a real User-Agent, cached results, no bulk geocoding. osm-poi sends one
-  lookup per `--area` and caches it. Do not point it at the public instance for large batch jobs.
-- [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances):
-  the public servers are shared. Keep areas and categories reasonable, and use `--overpass-url` to
-  target your own instance for heavy use.
+- [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/): At most one request per second, a valid User-Agent, cached results, and no bulk geocoding. osm-poi sends one lookup per `--area` and caches it. Do not point it at the public instance for large batch jobs.
+- [Overpass API policy](https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances): Public servers are shared community infrastructure. Keep search areas reasonable, and use `--overpass-url` to target your own instance for heavy usage.
 
-## Attribution and license of the data
+## FAQ & Limitations
 
-The data comes from OpenStreetMap and is licensed under the
-[Open Database License (ODbL) 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
-You must credit "(c) OpenStreetMap contributors", and a database derived from this data must be
-shared under the same license. osm-poi writes `<output>.ATTRIBUTION.txt` next to each file and
-adds `attribution` and `license` members to GeoJSON output. See the
-[OSM copyright page](https://www.openstreetmap.org/copyright). This is not legal advice.
+### What is the maximum search area I can query?
+By default, osm-poi enforces a safety limit of 0.25 square degrees (roughly $50 \times 50\text{ km}$ at mid-latitudes) to prevent overburdening public Overpass servers. If you need larger areas, pass `--split 2` (or higher) to tile the bounding box into smaller polite sub-queries, or pass `--allow-large` if targeting a private Overpass mirror.
 
-## Development
+### Are phone numbers and opening hours guaranteed to exist?
+No. OpenStreetMap data is crowd-sourced. While many business records include full contact information and opening hours, coverage varies by geographic region and mapping activity. Missing attributes are represented by empty strings.
 
-```
-pip install -e ".[dev]"
-python -m pytest -q
-python -m ruff check .
-python -m mypy src
-```
+### How does the ODbL license affect my use of exported data?
+Data from OpenStreetMap is licensed under the Open Database License (ODbL) 1.0. You must credit `(c) OpenStreetMap contributors`. If you publicly distribute an altered derivative database, that database must also be shared under ODbL. Internal analyses and proprietary applications that merely query or display the data generally do not require open-sourcing internal code. See [OSM Copyright](https://www.openstreetmap.org/copyright) for details.
 
-Tests never touch the real network: HTTP behaviour is tested against a local fake server.
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork and clone the repository.
+2. Install development dependencies:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+3. Run test, lint, and typecheck suites:
+   ```bash
+   python -m pytest
+   python -m ruff check .
+   python -m ruff format --check .
+   python -m mypy src
+   ```
+4. Read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
+5. Open a pull request using our PR template.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Copyright (c) 2026 Yusuf Berat Zengin.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+Data (c) [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), ODbL 1.0.
