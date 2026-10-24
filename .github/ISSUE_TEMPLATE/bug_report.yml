@@ -1,0 +1,64 @@
+name: Bug Report
+description: File a bug report to help us improve osm-poi
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        Please ensure you do not include real personal data, private tokens, or secrets.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps or command line sequence to reproduce the behavior.
+      placeholder: |
+        1. Run: osm-poi fetch --bbox ...
+        2. See error output...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: snippet
+    attributes:
+      label: Command Line or Code Snippet
+      description: The exact command line or Python snippet executed.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: osm-poi Version
+      placeholder: e.g. 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: e.g. Python 3.11 on Ubuntu 22.04 / Windows 11 / macOS 14
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklists
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I verified that no sensitive personal data or secrets are present in this report.
+          required: true
+        - label: I searched existing issues to ensure this is not a duplicate.
+          required: false

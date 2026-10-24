@@ -12,7 +12,7 @@ Fixes #(issue number)
 
 ## Checklist
 
-- [ ] Tests added/updated and passing (`python -m pytest -q`)
+- [ ] Tests added/updated and passing with coverage (`python -m pytest --cov=osm_poi`)
 - [ ] Code formatted and linted (`python -m ruff check .` and `python -m ruff format --check .`)
 - [ ] Type check passes (`python -m mypy src`)
 - [ ] Documentation updated (README.md and README.tr.md kept in sync)

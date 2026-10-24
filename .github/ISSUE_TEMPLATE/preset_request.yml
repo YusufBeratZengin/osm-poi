@@ -1,0 +1,42 @@
+name: Preset Request
+description: Propose a new category preset or tag matching rule
+title: "[PRESET] "
+labels: ["presets"]
+body:
+  - type: input
+    id: category_name
+    attributes:
+      label: Category Name
+      description: Short identifier in snake_case (e.g. veterinary, notary).
+      placeholder: e.g. veterinary
+    validations:
+      required: true
+  - type: input
+    id: label
+    attributes:
+      label: User-Facing Label
+      description: Human-readable display label.
+      placeholder: e.g. Veterinarians
+    validations:
+      required: true
+  - type: textarea
+    id: tags
+    attributes:
+      label: OpenStreetMap Tags
+      description: Which OSM tags define this category?
+      placeholder: |
+        {
+          "tags": [
+            {"amenity": "veterinary"}
+          ]
+        }
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Common Use Case
+      description: Describe the business type or agency use case that benefits from this preset.
+    validations:
+      required: true
