@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Comprehensive `examples/` suite: streamable `sample.jsonl`, customizable `custom_presets.json`, realistic polygon geometry `district_kadikoy.geojson`, standalone runnable Python script `examples/python_api_quickstart.py`, and `examples/README.md`.
+- GitHub Issue template configuration (`.github/ISSUE_TEMPLATE/config.yml`) linking security advisory reporting and GitHub discussions.
+- Architectural overview, zero-dependency philosophy, and testing instructions in `CONTRIBUTING.md`.
+- Expanded `SECURITY.md` detailing supported versions, reporting timelines, and protocol validation defense mechanisms.
+- Exhaustive unit test coverage for edge cases across `areas`, `api`, `cli`, `config`, `http`, `nominatim`, `presets`, `query`, and `writers`.
+
 ## [0.1.0] - 2026-10-23
 
 ### Added

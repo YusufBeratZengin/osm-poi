@@ -1,0 +1,33 @@
+{
+  "bike_shop": {
+    "label": "Bicycle shops",
+    "tags": [
+      {
+        "shop": "bicycle"
+      }
+    ]
+  },
+  "bar": {
+    "label": "Bars and pubs",
+    "tags": [
+      {
+        "amenity": [
+          "bar",
+          "pub",
+          "biergarten"
+        ]
+      }
+    ]
+  },
+  "organic_food": {
+    "label": "Organic and health food stores",
+    "tags": [
+      {
+        "shop": "health_food"
+      },
+      {
+        "shop": "organic"
+      }
+    ]
+  }
+}

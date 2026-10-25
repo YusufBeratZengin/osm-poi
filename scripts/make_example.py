@@ -77,7 +77,7 @@ SAMPLE_FIXTURE_ELEMENTS = [
 ]
 
 
-def generate_examples(output_dir: Path | None = None) -> tuple[str, str]:
+def generate_examples(output_dir: Path | None = None) -> tuple[str, str, str]:
     target_dir = output_dir or Path(__file__).resolve().parent.parent / "examples"
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -87,10 +87,12 @@ def generate_examples(output_dir: Path | None = None) -> tuple[str, str]:
 
     csv_text = render(unique, "csv")
     geojson_text = render(unique, "geojson")
+    jsonl_text = render(unique, "jsonl")
 
     (target_dir / "sample.csv").write_text(csv_text, encoding="utf-8", newline="")
     (target_dir / "sample.geojson").write_text(geojson_text, encoding="utf-8", newline="")
-    return csv_text, geojson_text
+    (target_dir / "sample.jsonl").write_text(jsonl_text, encoding="utf-8", newline="")
+    return csv_text, geojson_text, jsonl_text
 
 
 if __name__ == "__main__":

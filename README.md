@@ -131,6 +131,14 @@ node,404,https://www.openstreetmap.org/node/404,Bahariye Kitap Kafe,cafe,40.982,
 }
 ```
 
+### JSONL Output Excerpt
+
+```jsonl
+{"osm_type": "node", "osm_id": 101, "osm_url": "https://www.openstreetmap.org/node/101", "name": "Moda Kahvecisi", "category": "cafe", "lat": 40.99, "lon": 29.03, "street": "Moda Caddesi", "housenumber": "12", "postcode": "", "city": "Kadıköy", "country": "TR", "phone": "+90 216 555 0101", "website": "https://example.org/moda", "email": "", "opening_hours": "Mo-Su 08:00-22:00"}
+```
+
+See the [examples/](examples/) directory for complete dataset outputs, custom presets, polygon boundaries, and a standalone runnable Python script.
+
 ### Python API
 
 You can use `osm-poi` directly as a Python library:

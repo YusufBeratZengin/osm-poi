@@ -1,0 +1,19 @@
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Kadikoy Moda Sample District",
+    "description": "Sample polygon boundary covering the Moda neighborhood of Kadikoy, Istanbul."
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [29.020, 40.980],
+        [29.035, 40.980],
+        [29.035, 40.992],
+        [29.020, 40.992],
+        [29.020, 40.980]
+      ]
+    ]
+  }
+}
